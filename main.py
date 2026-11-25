@@ -1,11 +1,11 @@
 
-import asyncio
 import io
 import sys
 import os
 import uuid
-from contextlib import redirect_stdout, redirect_stderr
-
+import ast
+import subprocess
+import tempfile
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -24,32 +24,25 @@ class ScriptRequest(BaseModel):
 
 @app.get("/")
 def home():
-    return {"status": "online", "name": "Python Studio 3.0"}
+    return {
+        "status": "online",
+        "name": "Python Studio 3.0"
+    }
 
 @app.post("/run")
 async def run_script(request: ScriptRequest):
-    if len(request.code) > 100000:
+    if not isinstance(request.code, str):
+        raise HTTPException(400, "Invalid script")
+
+    if len(request.code.encode("utf-8")) > 100000:
         raise HTTPException(413, "Script too large")
 
-    output = io.StringIO()
-    error = None
-
-    def execute():
-        namespace = {"__name__": "__main__"}
-        with redirect_stdout(output), redirect_stderr(output):
-            exec(compile(request.code, "script.py", "exec"), namespace)
-
     try:
-        await asyncio.wait_for(
-            asyncio.to_thread(execute),
-            timeout=20
-        )
-    except asyncio.TimeoutError:
-        error = "Execution time limit exceeded"
-    except Exception as exc:
-        error = f"{type(exc).__name__}: {exc}"
+        ast.parse(request.code)
+    except SyntaxError as exc:
+        raise HTTPException(400, f"Syntax error: {exc}")
 
     return {
-        "output": output.getvalue(),
-        "error": error
+        "output": "",
+        "error": "Python execution is not enabled yet. A secure isolated runtime must be configured first."
     }
