@@ -1,576 +1,263 @@
+
 <!DOCTYPE html>
 <html lang="sq">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<meta name="theme-color" content="#101522">
-<title>Python Studio 2.0</title>
-
-<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python Studio 3.0</title>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
 
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;background:#101522;color:#e8edf7;
- font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
-}
-header{
- background:#192235;padding:16px;
- display:flex;justify-content:space-between;align-items:center;
- border-bottom:1px solid #303b50;
-}
-header h2{margin:0;color:#8ea7ff;font-size:20px}
-#engine{font-size:12px;color:#f5c66b}
-nav{
- display:flex;overflow-x:auto;background:#192235;
- border-bottom:1px solid #303b50;
-}
-nav button{
- flex:1;white-space:nowrap;background:none;color:#aebbd0;
- border-radius:0;padding:14px 12px;
-}
-nav button.active{color:#8ea7ff;border-bottom:2px solid #8ea7ff}
-.page{display:none;padding:13px}
-.page.active{display:block}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-button{
- border:0;border-radius:8px;padding:11px 14px;
- font-weight:600;cursor:pointer;
-}
-button:disabled{opacity:.4}
-.run{background:#31c98a;color:#071b12}
-.stop{background:#d84e62;color:white}
-.secondary{background:#29364d;color:white}
-.blue{background:#526ee8;color:white}
-input{
- width:100%;padding:13px;border-radius:8px;
- border:1px solid #35425a;background:#1b263a;color:white;
- font-size:15px;
-}
-.CodeMirror{
- height:48vh;min-height:260px;
- border-radius:9px;font-size:14px;
- font-family:monospace;
-}
-.panel{
- background:#192235;border:1px solid #303b50;
- border-radius:10px;padding:13px;margin-top:13px;
-}
-.panel h3{margin:0 0 12px;color:#8ea7ff;font-size:15px}
-#terminal{
- height:180px;overflow:auto;white-space:pre-wrap;
- overflow-wrap:anywhere;color:#a8efc1;
- font:13px/1.6 monospace;
-}
-.status{font-size:12px;color:#aab7cb;margin:12px 2px}
-.package-list,.project-list{display:grid;gap:8px;margin-top:12px}
-.item{
- background:#202d43;padding:12px;border-radius:8px;
- display:flex;align-items:center;justify-content:space-between;gap:8px;
-}
-.item small{color:#aab7cb}
-.item button{padding:8px;background:#34445f;color:white}
-.info{font-size:13px;color:#aab7cb;line-height:1.6}
-hr{border:0;border-top:1px solid #303b50;margin:16px 0}
-footer{text-align:center;color:#77849a;padding:20px;font-size:11px}
+body{margin:0;background:#10131c;color:#eee;font-family:Arial,sans-serif}
+header{padding:16px;background:#191f2d;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+h2{margin:0;color:#63d9a5}
+main{max-width:1100px;margin:auto;padding:15px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+button,.filebtn{border:0;border-radius:7px;padding:10px 14px;background:#293449;color:white;font-weight:bold;cursor:pointer}
+button:hover,.filebtn:hover{filter:brightness(1.2)}
+.run{background:#168b5b}
+.stop{background:#b73545}
+.editorbox{border:1px solid #394257;border-radius:8px;overflow:hidden}
+.CodeMirror{height:48vh;font-size:14px}
+h3{margin:18px 0 8px}
+textarea{width:100%;background:#191f2d;color:#eee;border:1px solid #394257;border-radius:7px;padding:12px;resize:vertical}
+#input{height:75px}
+#terminal{height:190px;overflow:auto;background:#080b11;border:1px solid #394257;border-radius:7px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-family:monospace;color:#b9f6cf}
+.status{color:#aebbd0;font-size:13px}
+footer{text-align:center;color:#8290a5;padding:20px;font-size:12px}
+input[type=file]{display:none}
 </style>
 </head>
 
 <body>
-
 <header>
- <h2>🐍 Python Studio</h2>
- <span id="engine">Loading...</span>
+  <h2>🐍 Python Studio 3.0</h2>
+  <span class="status" id="status">Gati për Python 3</span>
 </header>
 
-<nav>
- <button class="active" onclick="showPage('editor',this)">⌨ Editor</button>
- <button onclick="showPage('packages',this)">📦 Packages</button>
- <button onclick="showPage('files',this)">📁 Files</button>
- <button onclick="showPage('terminal',this)">▣ Terminal</button>
-</nav>
-
-<!-- EDITOR -->
-
-<section id="editor" class="page active">
-
- <div class="toolbar">
-  <button class="run" id="runBtn" onclick="runCode()" disabled>▶ RUN</button>
-  <button class="stop" onclick="stopCode()">■ STOP</button>
-  <button class="secondary" onclick="saveFile()">💾 SAVE</button>
-  <button class="secondary" onclick="openFile()">📂 OPEN</button>
- </div>
-
- <textarea id="code">print("Welcome to Python Studio!")
-
-import requests
-
-response = requests.get("https://httpbin.org/get")
-print("Status:", response.status_code)
-
-print("Python Studio 2.0 is working!")</textarea>
-
- <div class="status" id="status">Initializing Python...</div>
-
- <div class="panel">
-  <h3>Terminal Output</h3>
-  <div id="terminal">Welcome to Python Studio terminal...</div>
-  <button class="secondary" onclick="clearTerminal()">CLEAR</button>
- </div>
-
-</section>
-
-<!-- PACKAGES -->
-
-<section id="packages" class="page">
-
- <div class="panel">
-  <h3>📦 Python Package Manager</h3>
-  <p class="info">
-   Shkruaj emrin e bibliotekës që dëshiron të instalosh.
-   Programi do të provojë fillimisht paketat Pyodide
-   dhe më pas instalimin me micropip.
-  </p>
-
-  <input id="packageName" placeholder="p.sh. requests, numpy, pandas">
-
-  <div class="toolbar" style="margin-top:12px">
-   <button class="blue" id="installBtn" onclick="installPackageFromInput()">
-    INSTALL PACKAGE
-   </button>
+<main>
+  <div class="toolbar">
+    <button class="run" id="runBtn" onclick="runCode()">▶ RUN</button>
+    <button class="stop" onclick="stopCode()">■ STOP</button>
+    <button onclick="saveProject()">💾 Ruaj projektin</button>
+    <button onclick="openProject()">📂 Hap projektin</button>
+    <button onclick="downloadCode()">⬇ Shkarko .py</button>
+    <label class="filebtn" for="fileInput">📄 Importo .py</label>
+    <input id="fileInput" type="file" accept=".py,.txt" onchange="importFile(event)">
+    <button onclick="clearTerminal()">Pastro terminalin</button>
   </div>
 
-  <div class="status" id="packageStatus">Ready.</div>
- </div>
+  <div class="editorbox">
+    <textarea id="editor">print("Përshëndetje nga Python Studio 3.0!")
 
- <div class="panel">
-  <h3>Biblioteka të zakonshme</h3>
-  <div class="package-list" id="popularPackages"></div>
- </div>
-
- <div class="panel">
-  <h3>Bibliotekat e instaluara</h3>
-  <div id="installedPackages" class="package-list">
-   <small>Asnjë bibliotekë e instaluar nga Package Manager.</small>
+for i in range(5):
+    print("Python funksionon!", i + 1)
+</textarea>
   </div>
- </div>
 
- <p class="info">
-  Shënim: Disponueshmëria varet nga përputhshmëria
-  e paketës me Pyodide dhe versionin e Python.
- </p>
+  <h3>⌨️ Input për programin</h3>
+  <textarea id="input" placeholder="Shkruaj këtu të dhënat që kërkon input()..."></textarea>
 
-</section>
+  <h3>Terminal</h3>
+  <div id="terminal">Python Studio 3.0
+Lidhja me serverin: gati
+Shtyp RUN për të ekzekutuar kodin.
+</div>
+</main>
 
-<!-- FILES -->
+<footer>
+Python Studio 3.0 · Powered by Python 3.14
+</footer>
 
-<section id="files" class="page">
-
- <div class="panel">
-  <h3>📁 Project Manager</h3>
-  <p class="info">Ruaj projektet në memorien e shfletuesit.</p>
-
-  <button class="blue" onclick="saveProject()">+ SAVE NEW PROJECT</button>
-  <button class="secondary" onclick="exportFile()">EXPORT .PY</button>
-
-  <div class="project-list" id="projects"></div>
- </div>
-
- <div class="panel">
-  <h3>Open Python File</h3>
-  <input type="file" id="fileInput" accept=".py,.txt">
- </div>
-
-</section>
-
-<!-- TERMINAL -->
-
-<section id="terminal" class="page">
-
- <div class="panel">
-  <h3>▣ Python Terminal</h3>
-  <div id="terminalFull" style="white-space:pre-wrap;overflow-wrap:anywhere;color:#a8efc1;font:13px/1.6 monospace;min-height:150px"></div>
-  <button class="secondary" onclick="clearTerminal()">CLEAR TERMINAL</button>
- </div>
-
- <div class="panel">
-  <h3>Engine Information</h3>
-  <p class="info" id="engineInfo">Loading Python Engine...</p>
- </div>
-
-</section>
-
-<footer>Python Studio 2.0 · Mobile Python IDE</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
 
 <script>
-let pyodide = null;
-let editor = null;
-let running = false;
-let installing = false;
+const API = "https://python-studio-3.onrender.com";
 
-const STORAGE = {
- packages:"ps_packages_v2",
- projects:"ps_projects_v2"
-};
-
-const popular = [
- "requests","numpy","pandas","matplotlib",
- "scipy","sympy","pillow","beautifulsoup4",
- "scikit-learn","networkx","pytest"
-];
-
-const installed = new Set();
-
-function showPage(id,button){
- document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
- document.getElementById(id).classList.add("active");
-
- document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
- button.classList.add("active");
-
- if(id==="files")renderProjects();
- if(id==="packages")renderInstalled();
-}
-
-editor = CodeMirror.fromTextArea(
- document.getElementById("code"),{
-  mode:"python",
-  theme:"material-darker",
-  lineNumbers:true,
-  indentUnit:4,
-  tabSize:4,
-  lineWrapping:true,
-  extraKeys:{"Tab":function(cm){cm.replaceSelection("    ","end");}}
- }
+const editor = CodeMirror.fromTextArea(
+  document.getElementById("editor"),
+  {
+    mode: "python",
+    theme: "dracula",
+    lineNumbers: true,
+    indentUnit: 4,
+    tabSize: 4,
+    lineWrapping: true,
+    matchBrackets: true
+  }
 );
 
-function output(message){
- const text=String(message);
- document.getElementById("terminal").textContent += text+"\n";
- document.getElementById("terminalFull").textContent += text+"\n";
+let controller = null;
+let running = false;
 
- const t=document.getElementById("terminal");
- t.scrollTop=t.scrollHeight;
+const terminal = document.getElementById("terminal");
+const statusText = document.getElementById("status");
+const runBtn = document.getElementById("runBtn");
+
+function printTerminal(text) {
+  terminal.textContent += "\n" + text;
+  terminal.scrollTop = terminal.scrollHeight;
 }
 
-function clearTerminal(){
- document.getElementById("terminal").textContent="";
- document.getElementById("terminalFull").textContent="";
+function clearTerminal() {
+  terminal.textContent = "Terminal u pastrua.\n";
 }
 
-function setStatus(message){
- document.getElementById("status").textContent=message;
-}
+async function runCode() {
+  if (running) return;
 
-async function initPython(){
- try{
-  pyodide=await loadPyodide();
+  const code = editor.getValue();
 
-  pyodide.setStdout({batched:s=>output(s)});
-  pyodide.setStderr({batched:s=>output("[stderr] "+s)});
-
-  document.getElementById("engine").textContent="Python Ready";
-  document.getElementById("engine").style.color="#55d99b";
-  document.getElementById("runBtn").disabled=false;
-
-  document.getElementById("engineInfo").textContent=
-   "Python "+pyodide.runPython("import sys; sys.version")+
-   " | Pyodide 0.27.7";
-
-  setStatus("Python Engine ready!");
-
-  renderPopular();
-
-  const saved=getSavedPackages();
-
-  for(const name of saved){
-   try{
-    await loadOnePackage(name,false);
-   }catch(e){
-    output("[!] Could not restore "+name+": "+e);
-   }
+  if (!code.trim()) {
+    printTerminal("Gabim: Kodi është bosh.");
+    return;
   }
 
-  renderInstalled();
+  running = true;
+  controller = new AbortController();
 
- }catch(e){
-  document.getElementById("engine").textContent="Engine Error";
-  setStatus("Python initialization failed: "+e);
-  output("ENGINE ERROR: "+e);
- }
+  runBtn.disabled = true;
+  runBtn.textContent = "Duke ekzekutuar...";
+  statusText.textContent = "Duke ekzekutuar Python 3...";
+  printTerminal("\n>>> Ekzekutimi filloi...");
+
+  const timeout = setTimeout(() => {
+    if (controller) controller.abort();
+  }, 45000);
+
+  try {
+    const response = await fetch(API + "/run", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        code: code,
+        input: document.getElementById("input").value
+      }),
+      signal: controller.signal
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.detail || result.error || "Gabim në server.");
+    }
+
+    if (result.output) {
+      printTerminal(result.output);
+    }
+
+    if (result.error) {
+      printTerminal("ERROR:\n" + result.error);
+    }
+
+    if (!result.output && !result.error) {
+      printTerminal("Programi përfundoi pa dalje.");
+    }
+
+    if (result.exit_code !== undefined && result.exit_code !== null) {
+      printTerminal("Exit code: " + result.exit_code);
+    }
+
+    statusText.textContent = "Ekzekutimi përfundoi";
+
+  } catch (error) {
+    if (error.name === "AbortError") {
+      printTerminal("Kërkesa u ndërpre ose kaloi afatin e pritjes.");
+      statusText.textContent = "U ndërpre pritja";
+    } else {
+      printTerminal("Gabim: " + error.message);
+      statusText.textContent = "Gabim në ekzekutim";
+    }
+  } finally {
+    clearTimeout(timeout);
+    running = false;
+    controller = null;
+    runBtn.disabled = false;
+    runBtn.textContent = "▶ RUN";
+  }
 }
 
-function getSavedPackages(){
- try{
-  return JSON.parse(localStorage.getItem(STORAGE.packages)||"[]");
- }catch(e){
-  return [];
- }
+function stopCode() {
+  if (controller) {
+    controller.abort();
+    printTerminal("\n>>> U kërkua ndërprerja.");
+  }
 }
 
-function savePackageList(){
- localStorage.setItem(STORAGE.packages,JSON.stringify([...installed]));
-}
+function saveProject() {
+  const name = prompt("Emri i projektit:", "Projekti im");
 
-async function loadOnePackage(name,showLog=true){
- if(!pyodide)throw new Error("Python Engine is not ready.");
+  if (!name) return;
 
- if(installed.has(name))return;
-
- if(showLog)output("[!] Installing "+name+"...");
-
- try{
-  await pyodide.loadPackage(name);
- }catch(firstError){
-
-  output("[!] Trying micropip for "+name+"...");
-
-  await pyodide.loadPackage("micropip");
-
-  const safeName=JSON.stringify(name);
-
-  await pyodide.runPythonAsync(
-   "import micropip\nawait micropip.install("+safeName+")"
+  const projects = JSON.parse(
+    localStorage.getItem("pythonStudioProjects") || "{}"
   );
- }
 
- installed.add(name);
- savePackageList();
- renderInstalled();
-
- if(showLog)output("[+] "+name+" installed successfully!");
-}
-
-async function installPackageFromInput(){
- const input=document.getElementById("packageName");
- const name=input.value.trim();
-
- if(!/^[A-Za-z0-9_.-]+$/.test(name)){
-  document.getElementById("packageStatus").textContent="Invalid package name.";
-  return;
- }
-
- if(installing)return;
-
- installing=true;
- document.getElementById("installBtn").disabled=true;
- document.getElementById("packageStatus").textContent="Installing "+name+"...";
-
- try{
-  await loadOnePackage(name,true);
-  document.getElementById("packageStatus").textContent=name+" installed!";
-  input.value="";
- }catch(e){
-  document.getElementById("packageStatus").textContent="Installation failed: "+e;
-  output("[ERROR] "+e);
- }finally{
-  installing=false;
-  document.getElementById("installBtn").disabled=false;
- }
-}
-
-function renderPopular(){
- const box=document.getElementById("popularPackages");
- box.innerHTML="";
-
- popular.forEach(name=>{
-  const row=document.createElement("div");
-  row.className="item";
-
-  const label=document.createElement("strong");
-  label.textContent=name;
-
-  const btn=document.createElement("button");
-  btn.textContent="Install";
-  btn.onclick=()=>{
-   document.getElementById("packageName").value=name;
-   installPackageFromInput();
+  projects[name] = {
+    code: editor.getValue(),
+    input: document.getElementById("input").value,
+    date: new Date().toISOString()
   };
 
-  row.append(label,btn);
-  box.appendChild(row);
- });
+  localStorage.setItem("pythonStudioProjects", JSON.stringify(projects));
+  printTerminal("Projekti u ruajt: " + name);
 }
 
-function renderInstalled(){
- const box=document.getElementById("installedPackages");
- box.innerHTML="";
+function openProject() {
+  const projects = JSON.parse(
+    localStorage.getItem("pythonStudioProjects") || "{}"
+  );
 
- if(installed.size===0){
-  box.textContent="No packages installed yet.";
-  return;
- }
+  const names = Object.keys(projects);
 
- installed.forEach(name=>{
-  const row=document.createElement("div");
-  row.className="item";
+  if (!names.length) {
+    alert("Nuk ka projekte të ruajtura.");
+    return;
+  }
 
-  const label=document.createElement("strong");
-  label.textContent="✓ "+name;
+  const name = prompt("Projektet:\n" + names.join("\n") + "\n\nShkruaj emrin:");
 
-  row.appendChild(label);
-  box.appendChild(row);
- });
+  if (!name || !projects[name]) return;
+
+  editor.setValue(projects[name].code);
+  document.getElementById("input").value = projects[name].input || "";
+  printTerminal("U hap projekti: " + name);
 }
 
-async function runCode(){
- if(!pyodide||running||installing)return;
+function downloadCode() {
+  const blob = new Blob([editor.getValue()], {
+    type: "text/x-python;charset=utf-8"
+  });
 
- running=true;
- document.getElementById("runBtn").disabled=true;
- clearTerminal();
- setStatus("Executing Python...");
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "program.py";
+  a.click();
 
- try{
-  await pyodide.runPythonAsync(editor.getValue());
-  setStatus("Execution completed.");
- }catch(e){
-  output("ERROR: "+e);
-  setStatus("Execution failed. Check terminal.");
- }finally{
-  running=false;
-  document.getElementById("runBtn").disabled=false;
- }
+  URL.revokeObjectURL(url);
 }
 
-function stopCode(){
- if(running){
-  output("[!] Pyodide cannot safely interrupt a running script in this version.");
-  output("[!] Reload the page if a script becomes stuck.");
- }else{
-  output("No script is currently running.");
- }
-}
+function importFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
 
-function saveFile(){
- exportFile();
-}
+  const reader = new FileReader();
 
-function exportFile(){
- const blob=new Blob([editor.getValue()],{type:"text/x-python"});
- const url=URL.createObjectURL(blob);
- const a=document.createElement("a");
-
- a.href=url;
- a.download="main.py";
- a.click();
-
- setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-
-function openFile(){
- document.getElementById("fileInput").click();
-}
-
-document.getElementById("fileInput").addEventListener("change",e=>{
- const file=e.target.files[0];
- if(!file)return;
-
- const reader=new FileReader();
-
- reader.onload=()=>{
-  editor.setValue(reader.result);
-  setStatus("Opened: "+file.name);
- };
-
- reader.readAsText(file);
- e.target.value="";
-});
-
-function getProjects(){
- try{
-  return JSON.parse(localStorage.getItem(STORAGE.projects)||"[]");
- }catch(e){
-  return [];
- }
-}
-
-function saveProject(){
- const name=prompt("Project name:");
-
- if(!name||!name.trim())return;
-
- const projects=getProjects();
- const project={
-  name:name.trim(),
-  code:editor.getValue(),
-  date:new Date().toLocaleString()
- };
-
- const index=projects.findIndex(p=>p.name===project.name);
-
- if(index>=0)projects[index]=project;
- else projects.push(project);
-
- localStorage.setItem(STORAGE.projects,JSON.stringify(projects));
- renderProjects();
- output("[+] Project saved: "+project.name);
-}
-
-function renderProjects(){
- const box=document.getElementById("projects");
- box.innerHTML="";
-
- const projects=getProjects();
-
- if(!projects.length){
-  box.textContent="No saved projects.";
-  return;
- }
-
- projects.forEach((project,index)=>{
-  const row=document.createElement("div");
-  row.className="item";
-
-  const info=document.createElement("div");
-  const title=document.createElement("strong");
-  title.textContent=project.name;
-
-  const date=document.createElement("br");
-  const small=document.createElement("small");
-  small.textContent=project.date||"";
-
-  info.append(title,date,small);
-
-  const open=document.createElement("button");
-  open.textContent="OPEN";
-  open.onclick=()=>{
-   editor.setValue(project.code);
-   setStatus("Project opened: "+project.name);
-   showPage("editor",document.querySelector("nav button"));
+  reader.onload = () => {
+    editor.setValue(reader.result);
+    printTerminal("U importua skedari: " + file.name);
   };
 
-  const del=document.createElement("button");
-  del.textContent="DELETE";
-  del.onclick=()=>{
-   if(!confirm("Delete "+project.name+"?"))return;
-   const current=getProjects();
-   current.splice(index,1);
-   localStorage.setItem(STORAGE.projects,JSON.stringify(current));
-   renderProjects();
-  };
-
-  const actions=document.createElement("div");
-  actions.style.display="flex";
-  actions.style.gap="5px";
-  actions.append(open,del);
-
-  row.append(info,actions);
-  box.appendChild(row);
- });
+  reader.readAsText(file);
+  event.target.value = "";
 }
-
-document.getElementById("packageName").addEventListener("keydown",e=>{
- if(e.key==="Enter")installPackageFromInput();
-});
-
-initPython();
 </script>
-
 </body>
 </html>
